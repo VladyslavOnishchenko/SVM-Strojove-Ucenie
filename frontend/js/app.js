@@ -54,7 +54,7 @@ async function apiFetch(url, options = {}) {
   return resp.json();
 }
 
-// ── Sekcia 1: Vyber datasetu ─────────────────────────────────────────────────
+// ── Sekcia 1: Výber datasetu ──────────────────────────────────────────────────
 
 async function initExamples() {
   try {
@@ -69,14 +69,14 @@ async function initExamples() {
     };
     examples.forEach(ds => {
       const btn = document.createElement('button');
-      btn.className = 'dataset-btn border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:border-blue-500 hover:text-blue-700 transition-colors';
+      btn.className = 'dataset-btn';
       btn.textContent = labels[ds.name] || ds.name;
       btn.dataset.name = ds.name;
       btn.onclick = () => loadExampleDataset(ds.name);
       container.appendChild(btn);
     });
   } catch (e) {
-    showError('Nepodarilo sa nacitat zoznam datasetov: ' + e.message);
+    showError('Nepodarilo sa načítať zoznam datasetov: ' + e.message);
   }
 }
 
@@ -91,7 +91,7 @@ async function loadExampleDataset(name) {
     onDatasetLoaded(data);
   } catch (e) {
     if (btn) hideLoading(btn);
-    showError('Chyba pri nacitani datasetu: ' + e.message);
+    showError('Chyba pri načítaní datasetu: ' + e.message);
   }
 }
 
@@ -101,26 +101,26 @@ async function uploadCSV(file) {
   const formData = new FormData();
   formData.append('file', file);
   try {
-    const data = await fetch('/api/datasets/upload', { method: 'POST', body: formData });
-    if (!data.ok) {
-      let detail = `HTTP ${data.status}`;
-      try { const j = await data.json(); detail = j.detail || detail; } catch (_) {}
+    const resp = await fetch('/api/datasets/upload', { method: 'POST', body: formData });
+    if (!resp.ok) {
+      let detail = `HTTP ${resp.status}`;
+      try { const j = await resp.json(); detail = j.detail || detail; } catch (_) {}
       throw new Error(detail);
     }
-    const json = await data.json();
+    const json = await resp.json();
     state.currentDataset = json;
     document.querySelectorAll('.dataset-btn').forEach(b => b.classList.remove('active'));
     hideLoading(btn);
     onDatasetLoaded(json);
   } catch (e) {
     hideLoading(btn);
-    showError('Chyba pri nahravani suboru: ' + e.message);
+    showError('Chyba pri nahrávaní súboru: ' + e.message);
   }
 }
 
 function onDatasetLoaded(data) {
   document.getElementById('dataset-info').textContent =
-    `Nacitany: ${data.dataset_name || 'vlastny'} — ${data.n_rows} riadkov, ${data.n_columns} stlpcov`;
+    `Načítaný: ${data.dataset_name || 'vlastný'} — ${data.n_rows} riadkov, ${data.n_columns} stĺpcov`;
   hideSection('section-schema');
   hideSection('section-training');
   hideSection('section-results');
@@ -131,7 +131,7 @@ function onDatasetLoaded(data) {
   loadSchema();
 }
 
-// ── Sekcia 2: Schema stlpcov ─────────────────────────────────────────────────
+// ── Sekcia 2: Typy stĺpcov ────────────────────────────────────────────────────
 
 async function loadSchema() {
   try {
@@ -141,31 +141,20 @@ async function loadSchema() {
     showSection('section-schema');
     document.getElementById('section-schema').scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (e) {
-    showError('Chyba pri nacitani schemy: ' + e.message);
+    showError('Chyba pri načítaní schémy: ' + e.message);
   }
 }
 
 function renderSchemaTable(columns) {
   const tbody = document.getElementById('schema-tbody');
   tbody.innerHTML = '';
-  const types = ['numeric', 'categorical', 'binary', 'target', 'ignore'];
   columns.forEach(col => {
     const tr = document.createElement('tr');
-    tr.className = 'border-b border-gray-100';
-
-    const selOpts = types.map(t =>
-      `<option value="${t}" ${col.suggested_type === t ? 'selected' : ''}>${t}</option>`
-    ).join('');
-
+    if (col.suggested_type === 'target') tr.classList.add('target-row');
     tr.innerHTML = `
-      <td class="py-2 px-3 font-mono text-sm text-gray-800">${col.name}</td>
-      <td class="py-2 px-3 text-sm text-gray-500">${col.dtype}</td>
-      <td class="py-2 px-3 text-sm text-gray-500">${col.unique_count}</td>
-      <td class="py-2 px-3">
-        <select data-col="${col.name}" class="schema-select text-sm border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400">
-          ${selOpts}
-        </select>
-      </td>
+      <td class="col-name">${col.name}</td>
+      <td class="col-unique">${col.unique_count}</td>
+      <td><span class="type-badge ${col.suggested_type}">${col.suggested_type}</span></td>
     `;
     tbody.appendChild(tr);
   });
@@ -173,24 +162,19 @@ function renderSchemaTable(columns) {
 
 function collectSchema() {
   const schema = {};
-  document.querySelectorAll('.schema-select').forEach(sel => {
-    schema[sel.dataset.col] = sel.value;
-  });
+  if (state.columnInfo) {
+    state.columnInfo.forEach(col => { schema[col.name] = col.suggested_type; });
+  }
   return schema;
 }
 
 function onSchemaConfirmed() {
   state.columnSchema = collectSchema();
-  const targetCols = Object.entries(state.columnSchema).filter(([, v]) => v === 'target');
-  if (targetCols.length !== 1) {
-    showError('Schema musi obsahovat presne jeden stlpec s typom "target".');
-    return;
-  }
   showSection('section-training');
   document.getElementById('section-training').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// ── Sekcia 3: Trenovanie ─────────────────────────────────────────────────────
+// ── Sekcia 3: Trénovanie ──────────────────────────────────────────────────────
 
 function initTrainingControls() {
   document.getElementById('ctrl-kernel').addEventListener('change', e => {
@@ -231,32 +215,29 @@ async function trainModel() {
     state.trainingResults = results;
     state.modelTrained = true;
     hideLoading(btn);
-    btn.textContent = 'Trenovat znovu';
+    btn.textContent = 'Trénovať znovu';
     updateModelStatus(true);
     renderResults(results);
     showSection('section-results');
     document.getElementById('section-results').scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (e) {
     hideLoading(btn);
-    showError('Chyba pri trenovaní: ' + e.message);
+    showError('Chyba pri trénovaní: ' + e.message);
   }
 }
 
-// ── Sekcia 4: Vysledky ───────────────────────────────────────────────────────
+// ── Sekcia 4: Výsledky ────────────────────────────────────────────────────────
 
 function renderResults(r) {
   document.getElementById('res-accuracy').textContent = (r.accuracy * 100).toFixed(1) + ' %';
 
-  const bp = r.best_hyperparameters;
-  document.getElementById('res-kernel').textContent = (bp && bp.kernel) ? bp.kernel : state.hyperparameters.kernel;
-  document.getElementById('res-C').textContent = (bp && bp.C != null) ? bp.C : state.hyperparameters.C;
   document.getElementById('res-time').textContent = r.training_time_seconds != null
     ? r.training_time_seconds.toFixed(2) + ' s' : '—';
 
   const cvEl = document.getElementById('res-cv');
   if (r.cv_mean_accuracy != null) {
     const std = r.cv_std_accuracy != null ? ` ± ${(r.cv_std_accuracy * 100).toFixed(1)}` : '';
-    cvEl.textContent = (r.cv_mean_accuracy * 100).toFixed(1) + std + ' % (CV)';
+    cvEl.textContent = (r.cv_mean_accuracy * 100).toFixed(1) + std + ' %';
   } else {
     cvEl.textContent = '—';
   }
@@ -271,13 +252,22 @@ function renderPerClassMetrics(r) {
   if (!r.per_class_metrics) return;
   Object.entries(r.per_class_metrics).forEach(([cls, m]) => {
     const card = document.createElement('div');
-    card.className = 'metric-card bg-white rounded-lg p-4 border border-gray-100';
+    card.className = 'per-class-card';
     card.innerHTML = `
-      <div class="text-xs font-semibold text-gray-400 uppercase mb-2">${cls}</div>
+      <div class="per-class-title">${cls}</div>
       <div class="grid grid-cols-3 gap-2 text-center">
-        <div><div class="text-lg font-bold text-blue-700">${(m.precision * 100).toFixed(0)}</div><div class="text-xs text-gray-400">Precision</div></div>
-        <div><div class="text-lg font-bold text-emerald-600">${(m.recall * 100).toFixed(0)}</div><div class="text-xs text-gray-400">Recall</div></div>
-        <div><div class="text-lg font-bold text-violet-600">${(m.f1_score * 100).toFixed(0)}</div><div class="text-xs text-gray-400">F1</div></div>
+        <div>
+          <div class="per-class-value metric-precision">${(m.precision * 100).toFixed(0)}</div>
+          <div class="per-class-label">Precision</div>
+        </div>
+        <div>
+          <div class="per-class-value metric-recall">${(m.recall * 100).toFixed(0)}</div>
+          <div class="per-class-label">Recall</div>
+        </div>
+        <div>
+          <div class="per-class-value metric-f1">${(m.f1_score * 100).toFixed(0)}</div>
+          <div class="per-class-label">F1</div>
+        </div>
       </div>
     `;
     container.appendChild(card);
@@ -294,11 +284,11 @@ function renderConfusionMatrix(r) {
   const maxVal = Math.max(...mat.flat());
 
   const table = document.createElement('table');
-  table.className = 'cm-table border-collapse w-full';
+  table.className = 'cm-table';
 
   const thead = document.createElement('thead');
   const hrow = document.createElement('tr');
-  hrow.innerHTML = '<th class="py-2 px-3 text-left text-xs text-gray-400">Skut. \\ Pred.</th>' +
+  hrow.innerHTML = '<th class="py-2 px-3 text-left text-xs" style="color:var(--color-text-muted)">Skut. \\ Pred.</th>' +
     cls.map(c => `<th>${c}</th>`).join('');
   thead.appendChild(hrow);
   table.appendChild(thead);
@@ -306,12 +296,12 @@ function renderConfusionMatrix(r) {
   const tbody = document.createElement('tbody');
   mat.forEach((row, i) => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<th class="text-right pr-2 text-xs text-gray-500">${cls[i]}</th>` +
+    tr.innerHTML = `<th class="text-right pr-2 text-xs" style="color:var(--color-text-muted)">${cls[i]}</th>` +
       row.map((val, j) => {
         const ratio = maxVal > 0 ? val / maxVal : 0;
-        const cls2 = ratio > 0.6 ? 'cm-cell-high' : ratio > 0.2 ? 'cm-cell-mid' : 'cm-cell-low';
-        const diag = i === j ? ' font-bold' : '';
-        return `<td class="${cls2}${diag}">${val}</td>`;
+        const cellCls = ratio > 0.6 ? 'cm-cell-high' : ratio > 0.2 ? 'cm-cell-mid' : 'cm-cell-low';
+        const bold = i === j ? ' font-bold' : '';
+        return `<td class="${cellCls}${bold}">${val}</td>`;
       }).join('');
     tbody.appendChild(tr);
   });
@@ -323,23 +313,23 @@ function renderConfusionMatrix(r) {
   buildPredictionForm();
 }
 
-// ── Sekcia 5: Vizualizacia ───────────────────────────────────────────────────
+// ── Sekcia 5: Vizualizácia ────────────────────────────────────────────────────
 
 async function loadVisualization() {
   const btn = document.getElementById('btn-viz');
   showLoading(btn);
   document.getElementById('viz-container').innerHTML =
-    '<p class="text-sm text-gray-400 text-center py-8">Vypocitavam vizualizaciu...</p>';
+    '<p class="text-sm text-center py-8" style="color:var(--color-text-muted)">Vypočítavam vizualizáciu...</p>';
   try {
     const data = await apiFetch('/api/model/visualization');
     hideLoading(btn);
-    btn.textContent = 'Obnovit vizualizaciu';
+    btn.textContent = 'Obnoviť vizualizáciu';
     renderVisualization(data);
   } catch (e) {
     hideLoading(btn);
-    showError('Chyba pri generovani vizualizacie: ' + e.message);
+    showError('Chyba pri generovaní vizualizácie: ' + e.message);
     document.getElementById('viz-container').innerHTML =
-      '<p class="text-sm text-red-400 text-center py-8">Vizualizacia zlyhala.</p>';
+      '<p class="text-sm text-center py-8" style="color:var(--color-danger)">Vizualizácia zlyhala.</p>';
   }
 }
 
@@ -348,16 +338,14 @@ function renderVisualization(data) {
   container.innerHTML = '';
 
   const classes = data.classes;
-  const palette = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+  const palette = ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'];
 
   const traces = [];
 
-  // Decision boundary heatmap from grid
   if (data.grid && data.grid.predictions) {
     const { x_range, y_range, resolution, predictions } = data.grid;
     const n = classes.length;
 
-    // Stepped colorscale: each class gets a solid color band
     const colorscale = [];
     classes.forEach((_, i) => {
       colorscale.push([i / n, palette[i % palette.length]]);
@@ -384,7 +372,6 @@ function renderVisualization(data) {
     });
   }
 
-  // Scatter points per class
   classes.forEach((cls, i) => {
     const pts = data.points.filter(p => p.class === cls);
     traces.push({
@@ -402,54 +389,63 @@ function renderVisualization(data) {
   });
 
   const layout = {
-    title: { text: '2D PCA projekcia + rozhodovacie hranice', font: { size: 14 } },
-    xaxis: { title: 'PC 1', zeroline: false },
-    yaxis: { title: 'PC 2', zeroline: false },
+    title: { text: '2D PCA projekcia + rozhodovacie hranice', font: { size: 14, color: '#94a3b8' } },
+    xaxis: { title: 'PC 1', zeroline: false, gridcolor: 'rgba(99,102,241,0.1)', zerolinecolor: 'rgba(99,102,241,0.2)', color: '#94a3b8' },
+    yaxis: { title: 'PC 2', zeroline: false, gridcolor: 'rgba(99,102,241,0.1)', zerolinecolor: 'rgba(99,102,241,0.2)', color: '#94a3b8' },
     margin: { t: 40, r: 20, b: 40, l: 50 },
-    legend: { orientation: 'h', y: -0.15 },
-    paper_bgcolor: '#fff',
-    plot_bgcolor: '#f8fafc',
+    legend: { orientation: 'h', y: -0.15, font: { color: '#94a3b8' } },
+    paper_bgcolor: 'transparent',
+    plot_bgcolor: 'rgba(13,13,26,0.8)',
+    font: { color: '#94a3b8' },
   };
 
   Plotly.newPlot(container, traces, layout, { responsive: true, displayModeBar: false });
 }
 
-// ── Sekcia 6: Predikcia ──────────────────────────────────────────────────────
+// ── Sekcia 6: Predikcia ───────────────────────────────────────────────────────
 
 function buildPredictionForm() {
   if (!state.columnSchema) return;
   const form = document.getElementById('prediction-form');
   form.innerHTML = '';
+
+  const colInfoMap = {};
+  if (state.columnInfo) {
+    state.columnInfo.forEach(c => { colInfoMap[c.name] = c; });
+  }
+
   Object.entries(state.columnSchema)
     .filter(([, t]) => t !== 'target' && t !== 'ignore')
     .forEach(([col, type]) => {
       const wrapper = document.createElement('div');
-      wrapper.className = 'flex flex-col gap-1';
+      wrapper.className = 'flex flex-col';
 
       const label = document.createElement('label');
-      label.className = 'text-xs font-semibold text-gray-500 uppercase';
+      label.className = 'pred-field-label';
       label.textContent = col;
 
+      const colInfo = colInfoMap[col];
+      const sampleVal = colInfo && colInfo.sample_values && colInfo.sample_values.length > 0
+        ? colInfo.sample_values[0] : null;
+
       let input;
-      if (type === 'binary') {
-        input = document.createElement('select');
-        input.className = 'border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400';
-        input.innerHTML = '<option value="0">0 / nie</option><option value="1">1 / ano</option>';
-      } else if (type === 'categorical') {
-        input = document.createElement('input');
-        input.type = 'text';
-        input.placeholder = 'text';
-        input.className = 'border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400';
-      } else {
+      if (type === 'numeric') {
         input = document.createElement('input');
         input.type = 'number';
         input.step = 'any';
         input.placeholder = '0.0';
-        input.className = 'border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400';
+        input.className = 'pred-input-field pred-input';
+        if (sampleVal !== null) input.value = parseFloat(sampleVal);
+      } else {
+        // binary and categorical: send actual string values the model was trained on
+        input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = type === 'binary' ? '0 / 1' : 'text';
+        input.className = 'pred-input-field pred-input';
+        if (sampleVal !== null) input.value = sampleVal;
       }
       input.dataset.col = col;
       input.dataset.coltype = type;
-      input.className += ' pred-input';
 
       wrapper.appendChild(label);
       wrapper.appendChild(input);
@@ -473,16 +469,15 @@ async function predict() {
       const n = parseFloat(raw);
       if (isNaN(n)) { valid = false; return; }
       inputData[col] = n;
-    } else if (coltype === 'binary') {
-      inputData[col] = parseInt(raw, 10);
     } else {
+      // binary and categorical: send the original string the model was trained on
       inputData[col] = raw;
     }
   });
 
   if (!valid) {
     hideLoading(btn);
-    showError('Vyplnte prosim vsetky vstupne polia.');
+    showError('Vyplňte prosím všetky vstupné polia.');
     return;
   }
 
@@ -508,16 +503,20 @@ function renderPrediction(result) {
   probContainer.innerHTML = '';
   if (result.probabilities) {
     const sorted = Object.entries(result.probabilities).sort((a, b) => b[1] - a[1]);
-    sorted.forEach(([cls, prob]) => {
+    sorted.forEach(([cls, prob], idx) => {
       const pct = (prob * 100).toFixed(1);
+      const isTop = idx === 0;
+      const barStyle = isTop
+        ? 'background: linear-gradient(90deg, var(--color-primary), var(--color-accent));'
+        : 'background: #d1d5db;';
       const row = document.createElement('div');
-      row.className = 'flex items-center gap-2';
+      row.className = 'flex items-center gap-3';
       row.innerHTML = `
-        <span class="text-sm w-28 truncate text-gray-600">${cls}</span>
-        <div class="flex-1 bg-gray-100 rounded-full h-3">
-          <div class="bg-blue-500 h-3 rounded-full" style="width:${pct}%"></div>
+        <span class="pred-prob-label">${cls}</span>
+        <div class="pred-prob-track">
+          <div class="pred-prob-bar" style="width:${pct}%; ${barStyle}"></div>
         </div>
-        <span class="text-sm font-semibold text-gray-700 w-12 text-right">${pct} %</span>
+        <span class="pred-prob-pct">${pct} %</span>
       `;
       probContainer.appendChild(row);
     });
@@ -526,27 +525,13 @@ function renderPrediction(result) {
   box.classList.add('fade-in');
 }
 
-// ── Export modelu ────────────────────────────────────────────────────────────
+// ── Status indikátor ──────────────────────────────────────────────────────────
 
-function downloadModel() {
-  window.location.href = '/api/model/download';
+function updateModelStatus(_trained) {
+  // Status pill hidden via CSS — nothing to update.
 }
 
-// ── Status indikator ─────────────────────────────────────────────────────────
-
-function updateModelStatus(trained) {
-  const pill = document.getElementById('model-status-pill');
-  if (!pill) return;
-  if (trained) {
-    pill.className = 'status-pill trained';
-    pill.textContent = 'Model natrenovany';
-  } else {
-    pill.className = 'status-pill untrained';
-    pill.textContent = 'Model nenatrenovany';
-  }
-}
-
-// ── Init ─────────────────────────────────────────────────────────────────────
+// ── Init ──────────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
   await initExamples();
@@ -565,9 +550,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-train').addEventListener('click', trainModel);
   document.getElementById('btn-viz').addEventListener('click', loadVisualization);
   document.getElementById('btn-predict').addEventListener('click', predict);
-  document.getElementById('btn-download').addEventListener('click', downloadModel);
 
-  // Check if model already trained from previous session
   try {
     const status = await apiFetch('/api/model/status');
     if (status.is_trained) {
