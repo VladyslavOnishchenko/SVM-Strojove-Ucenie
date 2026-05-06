@@ -1,0 +1,3 @@
+"""
+Modul jadra aplikácie.
+"""

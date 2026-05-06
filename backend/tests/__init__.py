@@ -1,0 +1,3 @@
+"""
+Testovací balík.
+"""
