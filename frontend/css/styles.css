@@ -1,1 +1,99 @@
-/* Štýly aplikácie */
+/* Styly aplikacie SVM Strojove Ucenie */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.35s ease-out both;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+.step-card {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.step-card:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+  transform: translateY(-2px);
+}
+
+.metric-card {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  transition: box-shadow 0.2s ease;
+}
+.metric-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.13);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+.status-pill.trained   { background: #d1fae5; color: #065f46; }
+.status-pill.untrained { background: #fee2e2; color: #991b1b; }
+
+.btn-loading {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.75;
+}
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin {
+  to { transform: translateY(-50%) rotate(360deg); }
+}
+
+.cm-table td, .cm-table th {
+  text-align: center;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+.cm-table th { background: #f8fafc; font-weight: 600; color: #475569; }
+.cm-cell-high { background: #1e40af; color: #fff; }
+.cm-cell-mid  { background: #93c5fd; color: #1e3a8a; }
+.cm-cell-low  { background: #eff6ff; color: #1e3a8a; }
+
+.dataset-btn.active {
+  background: #1d4ed8;
+  color: #fff;
+  border-color: #1d4ed8;
+}
+
+.section-hidden { display: none !important; }
+
+.step-indicator {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.step-indicator.done    { background: #d1fae5; color: #065f46; }
+.step-indicator.active  { background: #dbeafe; color: #1d4ed8; }
+.step-indicator.pending { background: #f1f5f9; color: #94a3b8; }

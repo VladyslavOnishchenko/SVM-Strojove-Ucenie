@@ -1,19 +1,275 @@
 <!DOCTYPE html>
 <html lang="sk">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SVM Strojové Učenie</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="css/styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SVM Strojove Ucenie</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <link rel="stylesheet" href="css/styles.css">
 </head>
-<body class="bg-gray-50">
-    <div class="flex items-center justify-center min-h-screen">
-        <div class="text-center">
-            <h1 class="text-4xl font-bold text-gray-800 mb-4">SVM Strojové Učenie</h1>
-            <p class="text-lg text-gray-600">Načítavanie...</p>
-        </div>
+<body class="bg-gray-50 text-gray-900">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div>
+        <h1 class="text-lg font-bold text-blue-700 leading-none">SVM Strojove Ucenie</h1>
+        <p class="text-xs text-gray-400 mt-0.5">Support Vector Machine &mdash; klasifikacia CSV dat</p>
+      </div>
+      <span id="model-status-pill" class="status-pill untrained">Model nenatrenovany</span>
     </div>
-    <script src="js/app.js"></script>
+  </header>
+
+  <!-- Error box -->
+  <div id="error-box" class="section-hidden max-w-5xl mx-auto px-4 mt-4">
+    <div class="bg-red-50 border border-red-200 text-red-800 rounded-lg px-4 py-3 text-sm flex items-start gap-2">
+      <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+      </svg>
+      <span id="error-text"></span>
+    </div>
+  </div>
+
+  <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+
+    <!-- Krok 1: Dataset -->
+    <section id="section-dataset" class="step-card bg-white rounded-xl border border-gray-200 p-6 fade-in">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="step-indicator active">1</div>
+        <div>
+          <h2 class="font-semibold text-gray-800">Vyber datasetu</h2>
+          <p class="text-xs text-gray-400">Nacitaj zabudovany dataset alebo nahraj vlastny CSV subor</p>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <p class="text-xs font-semibold text-gray-500 uppercase mb-2">Zabudovane datasety</p>
+        <div id="example-buttons" class="flex flex-wrap gap-2">
+          <span class="text-sm text-gray-400">Nacitatvam...</span>
+        </div>
+      </div>
+
+      <div class="border-t border-gray-100 pt-4">
+        <p class="text-xs font-semibold text-gray-500 uppercase mb-2">Vlastny CSV subor</p>
+        <input type="file" id="upload-input" accept=".csv" class="hidden">
+        <button id="btn-upload"
+          class="border border-dashed border-gray-300 rounded-lg px-5 py-2.5 text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors">
+          Nahrat CSV...
+        </button>
+        <p class="text-xs text-gray-400 mt-1">Prvy riadok musi obsahovat nazvy stlpcov.</p>
+      </div>
+
+      <div id="dataset-info" class="mt-3 text-sm text-emerald-700 font-medium"></div>
+    </section>
+
+    <!-- Krok 2: Schema stlpcov -->
+    <section id="section-schema" class="section-hidden step-card bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="step-indicator active">2</div>
+        <div>
+          <h2 class="font-semibold text-gray-800">Typy stlpcov</h2>
+          <p class="text-xs text-gray-400">Skontroluj automaticke navrhy a uprav podla potreby. Jeden stlpec musi byt "target".</p>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto rounded-lg border border-gray-100">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase">
+              <th class="py-2 px-3 text-left">Stlpec</th>
+              <th class="py-2 px-3 text-left">Typ dat</th>
+              <th class="py-2 px-3 text-left">Unikatne</th>
+              <th class="py-2 px-3 text-left">Priradeny typ</th>
+            </tr>
+          </thead>
+          <tbody id="schema-tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="mt-4 bg-blue-50 rounded-lg p-3 text-xs text-blue-700 leading-relaxed">
+        <strong>Typy:</strong>
+        <strong>numeric</strong> &ndash; ciselny priznak &nbsp;|&nbsp;
+        <strong>categorical</strong> &ndash; textova kategoria &nbsp;|&nbsp;
+        <strong>binary</strong> &ndash; 0/1 priznak &nbsp;|&nbsp;
+        <strong>target</strong> &ndash; cielovy stlpec (vysledok) &nbsp;|&nbsp;
+        <strong>ignore</strong> &ndash; vynechat
+      </div>
+
+      <button id="btn-confirm-schema"
+        class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-5 py-2.5 rounded-lg transition-colors">
+        Potvrdit schemou &rarr;
+      </button>
+    </section>
+
+    <!-- Krok 3: Trenovanie -->
+    <section id="section-training" class="section-hidden step-card bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="step-indicator active">3</div>
+        <div>
+          <h2 class="font-semibold text-gray-800">Nastavenia a trenovanie</h2>
+          <p class="text-xs text-gray-400">Nastav hyperparametre SVM alebo zapni automaticke ladenie</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 mb-4 p-3 bg-amber-50 border border-amber-100 rounded-lg">
+        <input type="checkbox" id="ctrl-autotune" class="w-4 h-4 accent-blue-600">
+        <label for="ctrl-autotune" class="text-sm font-medium text-amber-800">
+          Automaticke ladenie hyperparametrov (GridSearchCV) &mdash; moze trvat dlhsie
+        </label>
+      </div>
+
+      <div id="manual-params" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold text-gray-500 uppercase" for="ctrl-kernel">Kernel</label>
+          <select id="ctrl-kernel"
+            class="border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400">
+            <option value="rbf" selected>RBF (odporucany)</option>
+            <option value="linear">Linear</option>
+            <option value="poly">Poly</option>
+            <option value="sigmoid">Sigmoid</option>
+          </select>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold text-gray-500 uppercase">
+            Parameter C: <span id="lbl-C" class="text-blue-600">1</span>
+          </label>
+          <input type="range" id="ctrl-C" min="0.01" max="100" step="0.01" value="1"
+            class="mt-2 accent-blue-600">
+          <div class="flex justify-between text-xs text-gray-400">
+            <span>0.01 (mekka)</span><span>100 (tvrda)</span>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold text-gray-500 uppercase" for="ctrl-gamma">Gamma</label>
+          <select id="ctrl-gamma"
+            class="border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400">
+            <option value="scale" selected>scale (predvolene)</option>
+            <option value="auto">auto</option>
+          </select>
+        </div>
+      </div>
+
+      <button id="btn-train"
+        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-6 py-2.5 rounded-lg transition-colors">
+        Trenovat SVM
+      </button>
+    </section>
+
+    <!-- Krok 4: Vysledky -->
+    <section id="section-results" class="section-hidden step-card bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="step-indicator done">4</div>
+        <div>
+          <h2 class="font-semibold text-gray-800">Vysledky trenovania</h2>
+          <p class="text-xs text-gray-400">Metriky hodnotenia a matica zamen</p>
+        </div>
+      </div>
+
+      <!-- Celkove metriky -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        <div class="metric-card bg-white border border-gray-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-blue-700" id="res-accuracy">—</div>
+          <div class="text-xs text-gray-400 mt-1">Presnost</div>
+        </div>
+        <div class="metric-card bg-white border border-gray-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-gray-700" id="res-kernel">—</div>
+          <div class="text-xs text-gray-400 mt-1">Kernel</div>
+        </div>
+        <div class="metric-card bg-white border border-gray-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-gray-700" id="res-C">—</div>
+          <div class="text-xs text-gray-400 mt-1">C</div>
+        </div>
+        <div class="metric-card bg-white border border-gray-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-gray-700" id="res-cv">—</div>
+          <div class="text-xs text-gray-400 mt-1">Krizova validacia</div>
+        </div>
+      </div>
+
+      <!-- Per-class metriky -->
+      <p class="text-xs font-semibold text-gray-500 uppercase mb-2">Metriky podla triedy (%)</p>
+      <div id="per-class-metrics" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-5"></div>
+
+      <!-- Matica zamen -->
+      <p class="text-xs font-semibold text-gray-500 uppercase mb-2">Matica zamen</p>
+      <div id="confusion-matrix" class="overflow-x-auto"></div>
+
+      <div class="mt-3 text-xs text-gray-400">
+        Cas trenovania: <span id="res-time">—</span>
+      </div>
+    </section>
+
+    <!-- Krok 5: Vizualizacia -->
+    <section id="section-visualization" class="section-hidden step-card bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="step-indicator done">5</div>
+        <div>
+          <h2 class="font-semibold text-gray-800">Vizualizacia rozhodovacich hranic</h2>
+          <p class="text-xs text-gray-400">2D PCA projekcia datovych bodov a rozhodovacich hranic</p>
+        </div>
+      </div>
+
+      <p class="text-sm text-gray-500 mb-3">
+        Vizualizacia sa negeneruje automaticky &mdash; moze trvat niekolko sekund.
+      </p>
+      <button id="btn-viz"
+        class="border border-blue-300 text-blue-700 hover:bg-blue-50 font-semibold text-sm px-5 py-2 rounded-lg transition-colors mb-4">
+        Generovat vizualizaciu
+      </button>
+
+      <div id="viz-container" class="w-full rounded-lg overflow-hidden border border-gray-100" style="min-height:320px"></div>
+    </section>
+
+    <!-- Krok 6: Predikcia -->
+    <section id="section-prediction" class="section-hidden step-card bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="step-indicator done">6</div>
+        <div>
+          <h2 class="font-semibold text-gray-800">Predikcia pre novy vzor</h2>
+          <p class="text-xs text-gray-400">Zadaj hodnoty priznakov a ziskaj klasifikaciu</p>
+        </div>
+      </div>
+
+      <div id="prediction-form" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-4"></div>
+
+      <button id="btn-predict"
+        class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-6 py-2.5 rounded-lg transition-colors">
+        Predikovat
+      </button>
+
+      <div id="prediction-result" class="section-hidden mt-5 bg-gray-50 border border-gray-100 rounded-xl p-5">
+        <p class="text-xs font-semibold text-gray-400 uppercase mb-1">Predpovedana trieda</p>
+        <p id="pred-class" class="text-2xl font-bold text-blue-700 mb-4"></p>
+        <p class="text-xs font-semibold text-gray-400 uppercase mb-2">Pravdepodobnosti</p>
+        <div id="pred-probabilities" class="space-y-2"></div>
+      </div>
+    </section>
+
+    <!-- Krok 7: Export -->
+    <section id="section-export" class="step-card bg-white rounded-xl border border-gray-200 p-6 fade-in">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="step-indicator pending">7</div>
+        <div>
+          <h2 class="font-semibold text-gray-800">Export modelu</h2>
+          <p class="text-xs text-gray-400">Stiahni natrenovany model ako .joblib subor</p>
+        </div>
+      </div>
+      <button id="btn-download"
+        class="border border-gray-300 text-gray-700 hover:border-blue-400 hover:text-blue-700 font-semibold text-sm px-5 py-2 rounded-lg transition-colors">
+        Stiahnut model (.joblib)
+      </button>
+      <p class="text-xs text-gray-400 mt-2">Model je dostupny az po uspesnom trenovani.</p>
+    </section>
+
+  </main>
+
+  <footer class="max-w-5xl mx-auto px-4 py-6 text-center text-xs text-gray-400">
+    SVM Strojove Ucenie &mdash; Vladyslav Onishchenko, predmet Strojove Ucenie, 2026
+  </footer>
+
+  <script src="js/app.js"></script>
 </body>
 </html>
