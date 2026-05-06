@@ -1,21 +1,18 @@
-"""
-Hlavný vstupný bod FastAPI aplikácie.
-"""
+"""Hlavný vstupný bod FastAPI aplikácie."""
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from backend.app.api import datasets, model_info, prediction, training
 from backend.app.core.config import PROJECT_NAME
 
-# Inicializácia FastAPI aplikácie
 app = FastAPI(
     title=PROJECT_NAME,
     description="Web aplikácia pre trénovanie a používanie SVM klasifikátorov na CSV dátach.",
 )
 
-# CORS middleware pre vývoj - povolenie všetkých pôvodov
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -24,21 +21,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API endpointy
-
-
+# API endpointy — musia byť zaregistrované PRED statickým mountom
 @app.get("/api/health")
 async def health_check() -> dict:
-    """
-    Kontrola stavu aplikácie.
-    
-    Returns:
-        dict: {"status": "ok"}
-    """
+    """Kontrola stavu aplikácie."""
     return {"status": "ok"}
 
+app.include_router(datasets.router, prefix="/api/datasets", tags=["datasets"])
+app.include_router(training.router, prefix="/api/train", tags=["training"])
+app.include_router(prediction.router, prefix="/api/predict", tags=["prediction"])
+app.include_router(model_info.router, prefix="/api/model", tags=["model"])
 
-# Statické súbory - frontend
+# Statické súbory — frontend (mountnuté po API routeroch)
 frontend_dir = Path(__file__).parent.parent.parent / "frontend"
 if frontend_dir.exists():
     app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
