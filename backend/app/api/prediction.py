@@ -10,20 +10,7 @@ router = APIRouter()
 
 @router.post("/", response_model=PredictionResponse)
 async def predict(request: PredictionRequest) -> PredictionResponse:
-    """Predikuje triedu a pravdepodobnosti pre jeden vstupný vzor.
-
-    Overí, či sú v požiadavke prítomné všetky požadované príznakové stĺpce.
-
-    Args:
-        request: PredictionRequest so slovníkom hodnôt príznakov.
-
-    Returns:
-        PredictionResponse s predikovanou triedou a pravdepodobnosťami.
-
-    Raises:
-        HTTPException 400: Ak model ešte nebol natrénovaný.
-        HTTPException 422: Ak chýbajú požadované stĺpce vo vstupe.
-    """
+    """Predikuje triedu pre vstupný vzor; 400 ak model nie je natrénovaný, 422 ak chýbajú stĺpce."""
     if app_state.current_model is None:
         raise HTTPException(
             status_code=400,

@@ -5,20 +5,7 @@ from backend.app.ml.types import ColumnType
 
 
 def suggest_column_types(df: pd.DataFrame) -> dict[str, ColumnType]:
-    """Navrhne typ každého stĺpca na základe jednoduchej heuristiky.
-
-    Pravidlá (v poradí priority):
-    - Posledný stĺpec sa navrhuje ako TARGET.
-    - Stĺpce s presne 2 unikátnymi hodnotami (numerické aj reťazcové) sa klasifikujú ako BINARY.
-    - Ostatné číselné stĺpce sa klasifikujú ako NUMERIC.
-    - Ostatné nečíselné stĺpce sa klasifikujú ako CATEGORICAL.
-
-    Args:
-        df: Vstupný DataFrame.
-
-    Returns:
-        Slovník mapujúci meno stĺpca na navrhovaný ColumnType.
-    """
+    """Navrhne typ stĺpca: posledný → TARGET, 2 unikátne → BINARY, číselné → NUMERIC, ostatné → CATEGORICAL."""
     columns = list(df.columns)
     schema: dict[str, ColumnType] = {}
 

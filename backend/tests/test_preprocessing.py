@@ -6,10 +6,6 @@ from backend.app.ml.preprocessing import build_preprocessor, split_features_targ
 from backend.app.ml.types import ColumnType
 
 
-# ---------------------------------------------------------------------------
-# validate_schema
-# ---------------------------------------------------------------------------
-
 def test_validate_schema_no_target_raises():
     """Chýbajúci TARGET stĺpec musí vyvolať ValueError."""
     df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
@@ -53,10 +49,6 @@ def test_validate_schema_valid_passes():
     validate_schema(df, schema)
 
 
-# ---------------------------------------------------------------------------
-# build_preprocessor
-# ---------------------------------------------------------------------------
-
 def test_build_preprocessor_mixed_schema_transformer_count():
     """Zmiešaná schéma musí vytvoriť presne 3 transformátory (numeric, categorical, binary)."""
     schema = {
@@ -99,10 +91,6 @@ def test_build_preprocessor_transforms_data():
     result = preprocessor.fit_transform(X)
     assert result.shape[0] == 4
 
-
-# ---------------------------------------------------------------------------
-# split_features_target
-# ---------------------------------------------------------------------------
 
 def test_split_features_target_shapes():
     """X a y musia mať správne tvary po rozdelení."""

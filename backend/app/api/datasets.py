@@ -74,17 +74,7 @@ async def list_example_datasets() -> list[ExampleDatasetInfo]:
 
 @router.post("/examples/{name}/load", response_model=UploadResponse)
 async def load_example_dataset(name: str) -> UploadResponse:
-    """Načíta pomenovaný príkladový dataset do pamäti aplikácie.
-
-    Args:
-        name: Technický identifikátor datasetu (iris, wine, bank_marketing, heart_disease).
-
-    Returns:
-        UploadResponse s počtom riadkov a stĺpcov.
-
-    Raises:
-        HTTPException 404: Ak názov nepatrí žiadnemu zabudovanému datasetu.
-    """
+    """Načíta pomenovaný zabudovaný dataset do pamäti; 404 ak neexistuje."""
     if name not in _EXAMPLE_DATASETS:
         raise HTTPException(
             status_code=404,
@@ -110,20 +100,7 @@ async def load_example_dataset(name: str) -> UploadResponse:
 
 @router.post("/upload", response_model=UploadResponse)
 async def upload_dataset(file: UploadFile = File(...)) -> UploadResponse:
-    """Nahrá vlastný CSV súbor a uloží ho ako aktuálny dataset.
-
-    Validácia: súbor musí byť parsovateľný ako CSV, obsahovať aspoň 10 riadkov
-    a aspoň 2 stĺpce.
-
-    Args:
-        file: Nahrávaný súbor cez multipart/form-data.
-
-    Returns:
-        UploadResponse s metadátami nahrátého datasetu.
-
-    Raises:
-        HTTPException 400: Neplatný formát, príliš málo riadkov alebo stĺpcov.
-    """
+    """Nahrá vlastný CSV súbor; validuje min. 10 riadkov a 2 stĺpce."""
     content = await file.read()
 
     try:
@@ -163,14 +140,7 @@ async def upload_dataset(file: UploadFile = File(...)) -> UploadResponse:
 
 @router.get("/current/schema", response_model=DatasetSchemaResponse)
 async def get_current_schema() -> DatasetSchemaResponse:
-    """Vráti schéma aktuálne načítaného datasetu s navrhovanými typmi stĺpcov.
-
-    Returns:
-        DatasetSchemaResponse so zoznamom stĺpcov a ich navrhovanými typmi.
-
-    Raises:
-        HTTPException 400: Ak nebol načítaný žiadny dataset.
-    """
+    """Vráti schému aktuálneho datasetu s navrhovanými typmi stĺpcov; 400 ak dataset chýba."""
     if app_state.current_dataset is None:
         raise HTTPException(
             status_code=400,

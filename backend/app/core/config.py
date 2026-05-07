@@ -1,6 +1,4 @@
-"""
-Konfigurácia a nastavenia aplikácie.
-"""
+"""Konfigurácia a nastavenia aplikácie."""
 from pathlib import Path
 
 PROJECT_NAME = "SVM Strojové Učenie"

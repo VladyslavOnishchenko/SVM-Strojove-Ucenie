@@ -12,11 +12,7 @@ router = APIRouter()
 
 @router.get("/status", response_model=ModelStatusResponse)
 async def get_model_status() -> ModelStatusResponse:
-    """Vráti aktuálny stav natrénovaného modelu.
-
-    Returns:
-        ModelStatusResponse s informáciou, či je model natrénovaný, a ak áno, s jeho metadátami.
-    """
+    """Vráti aktuálny stav modelu — is_trained, triedy a čas trénovania."""
     if app_state.current_model is None:
         return ModelStatusResponse(is_trained=False)
 
@@ -30,17 +26,7 @@ async def get_model_status() -> ModelStatusResponse:
 
 @router.get("/visualization", response_model=VisualizationResponse)
 async def get_visualization() -> VisualizationResponse:
-    """Vypočíta dáta pre 2D PCA vizualizáciu rozhodovacích hraníc SVM.
-
-    Táto operácia je výpočtovo náročnejšia — zahŕňa transformáciu dát, PCA
-    a predikcie na mriežke bodov. Pre väčšie datasety to môže trvať niekoľko sekúnd.
-
-    Returns:
-        VisualizationResponse s bodmi datasetu, mriežkou predikcií a PCA metadátami.
-
-    Raises:
-        HTTPException 400: Ak model alebo dataset nie je načítaný.
-    """
+    """Vypočíta PCA vizualizáciu rozhodovacích hraníc; výpočtovo náročné."""
     if app_state.current_model is None:
         raise HTTPException(status_code=400, detail="Model este nie je nauceny.")
     if app_state.current_dataset is None:
@@ -52,14 +38,7 @@ async def get_visualization() -> VisualizationResponse:
 
 @router.get("/download")
 async def download_model() -> FileResponse:
-    """Stiahne natrénovaný model ako súbor .joblib.
-
-    Returns:
-        FileResponse so súborom backend/storage/current_model.joblib.
-
-    Raises:
-        HTTPException 404: Ak súbor modelu neexistuje (model nebol natrénovaný alebo uložený).
-    """
+    """Stiahne natrénovaný model ako .joblib; 404 ak súbor neexistuje."""
     model_path = STORAGE_DIR / MODEL_FILENAME
     if not model_path.exists():
         raise HTTPException(

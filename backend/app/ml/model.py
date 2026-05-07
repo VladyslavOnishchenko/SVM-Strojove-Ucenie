@@ -22,12 +22,7 @@ class SVMClassifier:
         column_schema: dict[str, ColumnType],
         hyperparameters: dict,
     ) -> None:
-        """Inicializuje klasifikátor so schémou stĺpcov a hyperparametrami.
-
-        Args:
-            column_schema: Mapovanie meno_stĺpca -> ColumnType.
-            hyperparameters: Slovník s kľúčmi kernel, C, gamma, auto_tune.
-        """
+        """Inicializuje klasifikátor so schémou stĺpcov a hyperparametrami."""
         self.column_schema = column_schema
         self.hyperparameters = hyperparameters
         self.pipeline: Pipeline | None = None
@@ -40,20 +35,7 @@ class SVMClassifier:
         cv_folds: int = 5,
         random_state: int = 42,
     ) -> TrainingResults:
-        """Natrénuje SVM model na vstupnom DataFrame.
-
-        Ak je auto_tune=True, použije GridSearchCV na výber najlepších hyperparametrov.
-        Vždy spustí k-fold CV na trénovacej množine a vyhodnotí model na testovacej množine.
-
-        Args:
-            df: Vstupný DataFrame so všetkými stĺpcami vrátane cieľového.
-            test_size: Podiel dát vyhradených pre testovanie.
-            cv_folds: Počet fold-ov pre krížovú validáciu.
-            random_state: Náhodný stav pre reprodukovateľnosť.
-
-        Returns:
-            TrainingResults so všetkými metrikami a informáciami o modeli.
-        """
+        """Natrénuje SVM, spustí CV a vráti TrainingResults; pri auto_tune=True použije GridSearchCV."""
         validate_schema(df, self.column_schema)
         X, y, self.label_encoder = split_features_target(df, self.column_schema)
         preprocessor = build_preprocessor(self.column_schema)
@@ -137,14 +119,7 @@ class SVMClassifier:
         )
 
     def predict(self, input_data: dict) -> PredictionResult:
-        """Predikuje triedu a pravdepodobnosti pre jeden vstupný vzor.
-
-        Args:
-            input_data: Slovník mapujúci mená stĺpcov na hodnoty (jeden riadok).
-
-        Returns:
-            PredictionResult s predikovanou triedou a pravdepodobnosťami pre všetky triedy.
-        """
+        """Vráti predikovanú triedu a pravdepodobnosti pre jeden vstupný riadok."""
         if self.pipeline is None or self.label_encoder is None:
             raise RuntimeError("Model musí byť natrénovaný pred predikciou. Zavolaj fit() najskôr.")
 
@@ -164,11 +139,7 @@ class SVMClassifier:
         )
 
     def save(self, path: Path) -> None:
-        """Uloží model na disk pomocou joblib.
-
-        Args:
-            path: Cesta k súboru kde sa model uloží (napr. Path("storage/model.joblib")).
-        """
+        """Uloží pipeline, label encoder a schému na disk pomocou joblib."""
         if self.pipeline is None or self.label_encoder is None:
             raise RuntimeError("Model musí byť natrénovaný pred uložením.")
 
@@ -184,14 +155,7 @@ class SVMClassifier:
 
     @classmethod
     def load(cls, path: Path) -> "SVMClassifier":
-        """Načíta natrénovaný model zo súboru.
-
-        Args:
-            path: Cesta k súboru s uloženým modelom.
-
-        Returns:
-            Rekonštruovaná inštancia SVMClassifier.
-        """
+        """Načíta uložený model a vráti rekonštruovanú inštanciu SVMClassifier."""
         data: dict = joblib.load(path)
         instance = cls(data["column_schema"], data["hyperparameters"])
         instance.pipeline = data["pipeline"]

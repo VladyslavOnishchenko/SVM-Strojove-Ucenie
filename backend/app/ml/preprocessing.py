@@ -9,19 +9,7 @@ from backend.app.ml.types import ColumnType
 
 
 def build_preprocessor(column_schema: dict[str, ColumnType]) -> ColumnTransformer:
-    """Vytvorí sklearn ColumnTransformer podľa typov stĺpcov.
-
-    Pre NUMERIC: SimpleImputer(median) + StandardScaler.
-    Pre CATEGORICAL: SimpleImputer(most_frequent) + OneHotEncoder.
-    Pre BINARY: SimpleImputer(most_frequent) + OrdinalEncoder.
-    Stĺpce TARGET a IGNORE sú vynechané (remainder='drop').
-
-    Args:
-        column_schema: Mapovanie meno_stĺpca -> ColumnType.
-
-    Returns:
-        Nakonfigurovaný ColumnTransformer (ešte nie je natrénovaný).
-    """
+    """Vytvorí ColumnTransformer s pipeline pre každý typ stĺpca; TARGET a IGNORE sú vynechané."""
     numeric_cols = [c for c, t in column_schema.items() if t == ColumnType.NUMERIC]
     categorical_cols = [c for c, t in column_schema.items() if t == ColumnType.CATEGORICAL]
     binary_cols = [c for c, t in column_schema.items() if t == ColumnType.BINARY]
@@ -53,16 +41,7 @@ def build_preprocessor(column_schema: dict[str, ColumnType]) -> ColumnTransforme
 
 
 def validate_schema(df: pd.DataFrame, column_schema: dict[str, ColumnType]) -> None:
-    """Overí konzistentnosť schémy stĺpcov voči DataFrame.
-
-    Args:
-        df: Vstupný DataFrame.
-        column_schema: Mapovanie meno_stĺpca -> ColumnType.
-
-    Raises:
-        ValueError: Ak schéma odkazuje na neexistujúce stĺpce, chýba TARGET,
-                    je viac ako jeden TARGET, alebo všetky príznakové stĺpce sú IGNORE.
-    """
+    """Overí, že schéma obsahuje presne jeden TARGET, žiadne chýbajúce stĺpce a aspoň jeden príznak."""
     missing = [c for c in column_schema if c not in df.columns]
     if missing:
         raise ValueError(f"Stĺpce chýbajú v DataFrame: {missing}")
@@ -85,16 +64,7 @@ def split_features_target(
     df: pd.DataFrame,
     column_schema: dict[str, ColumnType],
 ) -> tuple[pd.DataFrame, pd.Series, LabelEncoder]:
-    """Rozdelí DataFrame na príznaky X, zakódovaný cieľ y a LabelEncoder.
-
-    Args:
-        df: Vstupný DataFrame.
-        column_schema: Mapovanie meno_stĺpca -> ColumnType.
-
-    Returns:
-        Trojica (X, y_encoded, label_encoder) kde X obsahuje len príznakové stĺpce,
-        y_encoded sú numericky zakódované triedy a label_encoder umožňuje spätné dekódovanie.
-    """
+    """Vráti (X, y_encoded, label_encoder) — X bez TARGET/IGNORE stĺpcov, y numericky zakódované."""
     target_col = next(c for c, t in column_schema.items() if t == ColumnType.TARGET)
     feature_cols = [
         c for c, t in column_schema.items()

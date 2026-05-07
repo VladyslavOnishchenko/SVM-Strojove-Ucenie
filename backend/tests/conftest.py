@@ -7,10 +7,7 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture(autouse=True)
 def reset_app_state():
-    """Vyčistí globálny stav aplikácie pred každým testom a po ňom.
-
-    Zabraňuje úniku stavu medzi testami (shared in-memory singleton).
-    """
+    """Vyčistí globálny stav aplikácie pred každým testom a po ňom."""
     from backend.app.core.config import MODEL_FILENAME, STORAGE_DIR
     from backend.app.core.state import app_state
 

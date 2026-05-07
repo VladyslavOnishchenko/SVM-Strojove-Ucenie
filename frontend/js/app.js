@@ -7,8 +7,6 @@ const state = {
   hyperparameters: { kernel: 'rbf', C: 1.0, gamma: 'scale', auto_tune: false },
 };
 
-// ── Utility ──────────────────────────────────────────────────────────────────
-
 function showSection(id) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -51,8 +49,6 @@ async function apiFetch(url, options = {}) {
   }
   return resp.json();
 }
-
-// ── Sekcia 1: Výber datasetu ──────────────────────────────────────────────────
 
 async function initExamples() {
   try {
@@ -129,8 +125,6 @@ function onDatasetLoaded(data) {
   loadSchema();
 }
 
-// ── Sekcia 2: Typy stĺpcov ────────────────────────────────────────────────────
-
 async function loadSchema() {
   try {
     const schema = await apiFetch('/api/datasets/current/schema');
@@ -171,8 +165,6 @@ function onSchemaConfirmed() {
   showSection('section-training');
   document.getElementById('section-training').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
-
-// ── Sekcia 3: Trénovanie ──────────────────────────────────────────────────────
 
 function initTrainingControls() {
   document.getElementById('ctrl-kernel').addEventListener('change', e => {
@@ -223,8 +215,6 @@ async function trainModel() {
     showError('Chyba pri trénovaní: ' + e.message);
   }
 }
-
-// ── Sekcia 4: Výsledky ────────────────────────────────────────────────────────
 
 function renderResults(r) {
   document.getElementById('res-accuracy').textContent = (r.accuracy * 100).toFixed(1) + ' %';
@@ -310,8 +300,6 @@ function renderConfusionMatrix(r) {
   showSection('section-prediction');
   buildPredictionForm();
 }
-
-// ── Sekcia 5: Vizualizácia ────────────────────────────────────────────────────
 
 async function loadVisualization() {
   const btn = document.getElementById('btn-viz');
@@ -399,8 +387,6 @@ function renderVisualization(data) {
 
   Plotly.newPlot(container, traces, layout, { responsive: true, displayModeBar: false });
 }
-
-// ── Sekcia 6: Predikcia ───────────────────────────────────────────────────────
 
 function buildPredictionForm() {
   if (!state.columnSchema) return;
@@ -523,13 +509,9 @@ function renderPrediction(result) {
   box.classList.add('fade-in');
 }
 
-// ── Status indikátor ──────────────────────────────────────────────────────────
-
 function updateModelStatus(_trained) {
   // Status pill hidden via CSS — nothing to update.
 }
-
-// ── Init ──────────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
   await initExamples();

@@ -18,21 +18,7 @@ def compute_decision_boundary_data(
     df: pd.DataFrame,
     grid_resolution: int = 100,
 ) -> dict:
-    """Vypočíta dáta pre vizualizáciu rozhodovacích hraníc v 2D priestore (PCA).
-
-    Aplikuje preprocessor modelu, zredukuje dimenzie pomocou PCA na 2,
-    vytvorí mriežku v 2D priestore a predikuje triedu pre každý bod mriežky
-    spätnou transformáciou PCA do priestoru príznakov.
-
-    Args:
-        model: Natrénovaný SVMClassifier s pipeline a label_encoder.
-        df: DataFrame s dátami (musí obsahovať príznakové aj cieľové stĺpce).
-        grid_resolution: Počet bodov na každej osi mriežky.
-
-    Returns:
-        Slovník s bodmi datasetu v 2D, predikciami mriežky, triedami
-        a podielom vysvetleného rozptylu PCA.
-    """
+    """Projektuje dáta do 2D pomocou PCA, predikuje mriežku a vráti dáta pre Plotly vizualizáciu."""
     if model.pipeline is None or model.label_encoder is None:
         raise RuntimeError("Model musí byť natrénovaný pred vizualizáciou.")
 

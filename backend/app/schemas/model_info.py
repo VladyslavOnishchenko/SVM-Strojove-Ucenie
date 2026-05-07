@@ -19,10 +19,7 @@ class ModelStatusResponse(BaseModel):
 
 
 class VisualizationResponse(BaseModel):
-    """Dáta pre 2D vizualizáciu rozhodovacích hraníc SVM pomocou PCA.
-
-    Vizualizácia sa vykresluje na frontende; tento endpoint len pripraví dáta.
-    """
+    """Dáta pre 2D PCA vizualizáciu rozhodovacích hraníc."""
     points: list[dict[str, Any]] = Field(
         ...,
         description="Body datasetu v 2D PCA priestore (každý bod má polia x, y a class)",

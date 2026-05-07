@@ -14,21 +14,7 @@ router = APIRouter()
 
 @router.post("/", response_model=TrainingResponse)
 async def train_model(request: TrainingRequest) -> TrainingResponse:
-    """Natrénuje SVM klasifikátor na aktuálnom datasete s danou schémou a hyperparametrami.
-
-    Ak je auto_tune=True, použije GridSearchCV na výber optimálnych hyperparametrov.
-    Natrénovaný model sa uloží do backend/storage/current_model.joblib.
-
-    Args:
-        request: TrainingRequest so schémou stĺpcov a hyperparametrami.
-
-    Returns:
-        TrainingResponse s metrikami hodnotenia na testovacej množine.
-
-    Raises:
-        HTTPException 400: Ak nebol načítaný žiadny dataset.
-        HTTPException 422: Ak schéma je neplatná alebo trénovanie zlyhá z ML dôvodov.
-    """
+    """Natrénuje SVM na aktuálnom datasete a uloží model; pri auto_tune=True použije GridSearchCV."""
     if app_state.current_dataset is None:
         raise HTTPException(
             status_code=400,
