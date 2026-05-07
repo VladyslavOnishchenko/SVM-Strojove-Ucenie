@@ -1,5 +1,3 @@
-// SVM Strojove Ucenie - hlavny skript aplikacie
-
 const state = {
   currentDataset: null,
   columnSchema: null,

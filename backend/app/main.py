@@ -32,7 +32,6 @@ app.include_router(training.router, prefix="/api/train", tags=["training"])
 app.include_router(prediction.router, prefix="/api/predict", tags=["prediction"])
 app.include_router(model_info.router, prefix="/api/model", tags=["model"])
 
-# Statické súbory — frontend (mountnuté po API routeroch)
 frontend_dir = Path(__file__).parent.parent.parent / "frontend"
 if frontend_dir.exists():
     app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")

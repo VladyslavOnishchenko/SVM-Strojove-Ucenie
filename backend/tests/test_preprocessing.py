@@ -50,7 +50,7 @@ def test_validate_schema_valid_passes():
     """Platná schéma nesmie vyvolať žiadnu výnimku."""
     df = pd.DataFrame({"feat": [1.0, 2.0], "label": ["a", "b"]})
     schema = {"feat": ColumnType.NUMERIC, "label": ColumnType.TARGET}
-    validate_schema(df, schema)  # no exception
+    validate_schema(df, schema)
 
 
 # ---------------------------------------------------------------------------

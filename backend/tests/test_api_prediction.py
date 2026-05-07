@@ -46,6 +46,6 @@ def test_predict_without_model_returns_400(client: TestClient) -> None:
 def test_predict_with_missing_columns_returns_422(client: TestClient) -> None:
     """Predikcia s chybajucimi stlpcami vo vstupe musi vrátit 422."""
     _train_iris(client)
-    incomplete = {"sepal_length": 5.1}  # chybajú 3 stĺpce
+    incomplete = {"sepal_length": 5.1}
     resp = client.post("/api/predict/", json={"input_data": incomplete})
     assert resp.status_code == 422
